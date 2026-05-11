@@ -41,21 +41,25 @@ export default function DashboardPage() {
         </div>
         {fresh.isLoading ? <LoadingRows /> : fresh.isError ? <ErrorState error={fresh.error} /> : fresh.data?.items.length ? (
           <div className="border-y hairline">
-            {fresh.data.items.slice(0, 8).map((item) => (
-              <motion.div
-                key={item.project.id}
-                initial={{ y: -8, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                className="grid gap-2 border-b hairline px-3 py-2 text-[12px] hover:bg-[var(--bg-hover)] md:grid-cols-[120px_1fr_140px_220px_80px]"
-              >
-                <div className="text-[var(--ink-soft)]">{shortDate(item.indexed_at)}</div>
-                <Link href={`/projects/${item.project.id}`} className="text-[var(--ink)]">{item.project.title}</Link>
-                <Link href={`/hackathons/${item.hackathon.slug}`} className="text-[var(--ink-mid)]">{item.hackathon.slug}</Link>
-                <div className="truncate text-[var(--ink-mid)]">{item.members.map((member) => member.name).join(" · ")}</div>
-                <OfferButton developerId={item.members[0].id} />
-              </motion.div>
-            ))}
+            {fresh.data.items.slice(0, 8).map((item) => {
+              const primaryMember = item.members[0];
+
+              return (
+                <motion.div
+                  key={item.project.id}
+                  initial={{ y: -8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                  className="grid gap-2 border-b hairline px-3 py-2 text-[12px] hover:bg-[var(--bg-hover)] md:grid-cols-[120px_1fr_140px_220px_80px]"
+                >
+                  <div className="text-[var(--ink-soft)]">{shortDate(item.indexed_at)}</div>
+                  <Link href={`/projects/${item.project.id}`} className="text-[var(--ink)]">{item.project.title}</Link>
+                  <Link href={`/hackathons/${item.hackathon.slug}`} className="text-[var(--ink-mid)]">{item.hackathon.slug}</Link>
+                  <div className="truncate text-[var(--ink-mid)]">{item.members.map((member) => member.name).join(" · ") || "no members indexed"}</div>
+                  {primaryMember ? <OfferButton developerId={primaryMember.id} /> : <span className="text-[11px] text-[var(--ink-soft)]">—</span>}
+                </motion.div>
+              );
+            })}
           </div>
         ) : <EmptyState text="no fresh signals · indexer is quiet" />}
       </section>

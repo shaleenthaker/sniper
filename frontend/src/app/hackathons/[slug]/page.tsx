@@ -45,6 +45,8 @@ export default function HackathonDetailPage() {
           {detail.data.podium.map((row) => {
             const status = offerStatus(row.members);
             const offer = row.members.map((member) => member.offer).find(Boolean);
+            const primaryMember = row.members[0];
+
             return (
               <div key={row.rank} className="grid gap-3 border-b hairline px-3 py-3 text-[12px] hover:bg-[var(--bg-hover)] md:grid-cols-[48px_1.3fr_1fr_1fr_160px]">
                 <div className="font-heading text-[20px] text-[var(--accent)]">0{row.rank}.</div>
@@ -53,16 +55,16 @@ export default function HackathonDetailPage() {
                   {fallbackRank === row.rank ? <div className="mt-1 text-[var(--signal)]">next-up if 01 declines</div> : null}
                 </div>
                 <div className="space-y-1">
-                  {row.members.map((member) => (
+                  {row.members.length ? row.members.map((member) => (
                     <div key={member.id} className="flex flex-wrap items-center gap-1">
                       <Link href={`/developers/${member.id}`} className="text-[var(--ink-mid)]">{member.name}</Link>
                       <EmailButton developerId={member.id} developerName={member.name} defaultTo={member.links.email} label="+EMAIL" />
                     </div>
-                  ))}
+                  )) : <span className="text-[var(--ink-soft)]">no members indexed</span>}
                 </div>
                 <div>{row.project.stack.slice(0, 4).map((tag) => <span key={tag} className="chip mr-1">{tag}</span>)}</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {status ? <span className={status === "rejected" ? "text-[var(--offered)]" : "text-[var(--accent)]"}>■ {status}</span> : <OfferButton developerId={row.members[0].id} />}
+                  {status ? <span className={status === "rejected" ? "text-[var(--offered)]" : "text-[var(--accent)]"}>■ {status}</span> : primaryMember ? <OfferButton developerId={primaryMember.id} /> : <span className="text-[11px] text-[var(--ink-soft)]">—</span>}
                   {offer ? <button onClick={() => mutation.mutate({ id: offer.id, status: "rejected" })} className="border hairline px-2 py-1 text-[11px] text-[var(--offered)]">mark rejected</button> : null}
                 </div>
               </div>

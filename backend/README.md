@@ -106,7 +106,7 @@ Run one watcher cycle for testing:
 npm run scrape:devpost:watch -- --once --dry-run --max-list-pages 1 --max-hackathons 3 --max-project-pages 1 --max-projects-per-hackathon 1
 ```
 
-The watcher sleeps between cycles. Set `DEVPOST_WATCH_INTERVAL_MS` or pass `--interval-ms`; the default is 15 minutes. It also skips hackathons that completed successfully in the last 24 hours so each cycle keeps moving through the priority queue. Set `DEVPOST_SKIP_RECENT_HOURS`, pass `--skip-recent-hours`, or pass `--no-skip-recent` to change that.
+The watcher sleeps between cycles. Set `DEVPOST_WATCH_INTERVAL_MS` or pass `--interval-ms`; the default is 15 minutes. It also skips hackathons attempted in the last 24 hours so each cycle keeps moving through the priority queue instead of retrying the same failed gallery forever. Set `DEVPOST_SKIP_RECENT_HOURS`, pass `--skip-recent-hours`, or pass `--no-skip-recent` to change that.
 
 You can also ingest through the API:
 

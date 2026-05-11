@@ -28,6 +28,10 @@ function unique<T>(items: T[]) {
   return Array.from(new Set(items));
 }
 
+function uniqueBy<T>(items: T[], getKey: (item: T) => string) {
+  return Array.from(new Map(items.map((item) => [getKey(item), item])).values());
+}
+
 function toDeveloperRow(developer: ScrapedDeveloper): Developer {
   return {
     id: developer.id,
@@ -43,6 +47,30 @@ function toDeveloperRow(developer: ScrapedDeveloper): Developer {
     first_indexed_at: developer.first_indexed_at,
     signal_lead_hours: null
   };
+}
+
+function mergeDeveloperRows(developers: Developer[]) {
+  const byId = new Map<string, Developer>();
+
+  developers.forEach((developer) => {
+    const existing = byId.get(developer.id);
+    if (!existing) {
+      byId.set(developer.id, developer);
+      return;
+    }
+
+    byId.set(developer.id, {
+      ...existing,
+      name: developer.name || existing.name,
+      handle: developer.handle || existing.handle,
+      avatar_url: developer.avatar_url ?? existing.avatar_url,
+      headline: developer.headline ?? existing.headline,
+      links: { ...existing.links, ...developer.links },
+      first_indexed_at: developer.first_indexed_at < existing.first_indexed_at ? developer.first_indexed_at : existing.first_indexed_at
+    });
+  });
+
+  return Array.from(byId.values());
 }
 
 async function assertNoSupabaseError<T>(promise: PromiseLike<{ data: T; error: unknown }>, action: string) {
@@ -80,9 +108,12 @@ async function refreshDeveloperStats(developerIds: string[]) {
 
 async function saveScrape(scrape: ScrapedHackathon) {
   const db = supabase();
-  const developers = unique(scrape.projects.flatMap((entry) => entry.members).map((developer) => JSON.stringify(toDeveloperRow(developer)))).map((value) => JSON.parse(value) as Developer);
-  const projects = scrape.projects.map((entry) => entry.project);
-  const memberRows = scrape.projects.flatMap((entry) => entry.members.map((member) => ({ project_id: entry.project.id, developer_id: member.id })));
+  const developers = mergeDeveloperRows(scrape.projects.flatMap((entry) => entry.members).map(toDeveloperRow));
+  const projects = uniqueBy(scrape.projects.map((entry) => entry.project), (project) => project.id);
+  const memberRows = uniqueBy(
+    scrape.projects.flatMap((entry) => entry.members.map((member) => ({ project_id: entry.project.id, developer_id: member.id }))),
+    (row) => `${row.project_id}:${row.developer_id}`
+  );
 
   await assertNoSupabaseError(db.from("hackathons").upsert(scrape.hackathon, { onConflict: "slug" }), "upsert hackathon");
   if (developers.length) await assertNoSupabaseError(db.from("developers").upsert(developers, { onConflict: "id" }), "upsert developers");
@@ -107,7 +138,6 @@ async function recentDevpostSourceUrls(hours: number) {
       .from("ingestion_runs")
       .select("source_url")
       .eq("source", "devpost")
-      .eq("status", "completed")
       .gte("completed_at", since)
       .range(0, 9999),
     "load recent Devpost ingestion runs"
@@ -141,7 +171,10 @@ export async function ingestDevpostHackathon(options: IngestOptions) {
           hackathon: scrape.hackathon,
           projects_saved: 0,
           developers_saved: unique(scrape.projects.flatMap((entry) => entry.members.map((member) => member.id))).length,
-          project_members_saved: scrape.projects.reduce((count, entry) => count + entry.members.length, 0)
+          project_members_saved: uniqueBy(
+            scrape.projects.flatMap((entry) => entry.members.map((member) => `${entry.project.id}:${member.id}`)),
+            (key) => key
+          ).length
         }
       : await saveScrape(scrape);
 

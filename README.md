@@ -57,7 +57,7 @@ Run the scraper continuously:
 npm run scrape:devpost:watch -- --max-list-pages 3 --max-hackathons 10 --max-project-pages 1 --max-projects-per-hackathon 24
 ```
 
-The watcher skips hackathons scraped successfully in the last 24 hours by default, so it keeps moving through prioritized events instead of reprocessing the same few galleries every cycle.
+The watcher skips hackathons attempted in the last 24 hours by default, so it keeps moving through prioritized events instead of reprocessing the same few galleries every cycle.
 
 For an uncapped run across all discovered ended hackathons:
 

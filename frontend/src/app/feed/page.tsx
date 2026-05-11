@@ -33,16 +33,20 @@ function FeedContent() {
       </div>
       {fresh.isLoading ? <LoadingRows rows={10} /> : fresh.isError ? <ErrorState error={fresh.error} /> : fresh.data?.items.length ? (
         <div className="border-y hairline">
-          {fresh.data.items.map((item) => (
-            <motion.div key={item.project.id} initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }} className="grid gap-2 border-b hairline px-3 py-2 text-[12px] hover:bg-[var(--bg-hover)] md:grid-cols-[84px_1fr_160px_220px_180px_84px]">
-              <div className="text-[var(--signal)]"><span className="pulse-fresh">▪</span> {leadLabel(item.hours_since_indexed)}</div>
-              <Link href={`/projects/${item.project.id}`}>{item.project.title}</Link>
-              <Link href={`/hackathons/${item.hackathon.slug}`} className="text-[var(--ink-mid)]">{item.hackathon.slug}</Link>
-              <div className="truncate text-[var(--ink-mid)]">{item.members.map((member) => member.name).join(" · ")}</div>
-              <div>{item.project.stack.slice(0, 4).map((tag) => <span key={tag} className="chip mr-1">{tag}</span>)}</div>
-              <OfferButton developerId={item.members[0].id} />
-            </motion.div>
-          ))}
+          {fresh.data.items.map((item) => {
+            const primaryMember = item.members[0];
+
+            return (
+              <motion.div key={item.project.id} initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }} className="grid gap-2 border-b hairline px-3 py-2 text-[12px] hover:bg-[var(--bg-hover)] md:grid-cols-[84px_1fr_160px_220px_180px_84px]">
+                <div className="text-[var(--signal)]"><span className="pulse-fresh">▪</span> {leadLabel(item.hours_since_indexed)}</div>
+                <Link href={`/projects/${item.project.id}`}>{item.project.title}</Link>
+                <Link href={`/hackathons/${item.hackathon.slug}`} className="text-[var(--ink-mid)]">{item.hackathon.slug}</Link>
+                <div className="truncate text-[var(--ink-mid)]">{item.members.map((member) => member.name).join(" · ") || "no members indexed"}</div>
+                <div>{item.project.stack.slice(0, 4).map((tag) => <span key={tag} className="chip mr-1">{tag}</span>)}</div>
+                {primaryMember ? <OfferButton developerId={primaryMember.id} /> : <span className="text-[11px] text-[var(--ink-soft)]">—</span>}
+              </motion.div>
+            );
+          })}
         </div>
       ) : <EmptyState text="no fresh signals match these filters · try removing `rust`" />}
     </div>
