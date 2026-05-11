@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+:root {
+  --font-jetbrains: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-plex: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --bg: #0B0B0A;
+  --bg-elev: #131311;
+  --bg-hover: #1B1A17;
+  --ink: #E8E4D8;
+  --ink-mid: #9A9588;
+  --ink-soft: #5E5A50;
+  --rule: #2A2823;
+  --accent: #D4A24C;
+  --accent-soft: #D4A24C1F;
+  --signal: #6FCF97;
+  --offered: #B23A1F;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-jetbrains), monospace;
+  letter-spacing: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.font-heading {
+  font-family: var(--font-plex), var(--font-jetbrains), monospace;
+}
+
+.hairline {
+  border-color: var(--rule);
+}
+
+.dense-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dense-table th {
+  background: var(--bg-elev);
+  color: var(--ink-mid);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 8px;
+  text-align: left;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dense-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.dense-table tbody tr {
+  transition: background 140ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.dense-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 1px 6px;
+  color: var(--ink-mid);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.panel {
+  border: 1px solid var(--rule);
+  background: var(--bg);
+}
+
+.pulse-fresh {
+  animation: pulseFresh 1.4s cubic-bezier(0.2, 0, 0, 1) infinite;
+}
+
+.skeleton {
+  animation: skeleton 1s cubic-bezier(0.2, 0, 0, 1) infinite alternate;
+}
+
+@keyframes pulseFresh {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 1; }
+}
+
+@keyframes skeleton {
+  from { background: var(--bg-elev); }
+  to { background: var(--bg-hover); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
