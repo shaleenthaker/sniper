@@ -64,6 +64,35 @@ export type Offer = {
   notes: string | null;
 };
 
+export type IngestionRun = {
+  id: string;
+  source: string;
+  source_url: string;
+  hackathon_slug: string | null;
+  status: "started" | "completed" | "failed";
+  projects_found: number;
+  projects_saved: number;
+  developers_saved: number;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
+export type IngestionOverview = {
+  summary: {
+    total_runs: number;
+    completed: number;
+    failed: number;
+    started: number;
+    projects_saved: number;
+    developers_saved: number;
+    latest_run: IngestionRun | null;
+    last_success: IngestionRun | null;
+    last_failure: IngestionRun | null;
+  };
+  runs: IngestionRun[];
+};
+
 export type GraphNode =
   | { id: string; type: "developer"; label: string; meta: Pick<Developer, "wins" | "hackathon_count" | "stack"> }
   | { id: string; type: "hackathon"; label: string; meta: Pick<Hackathon, "start_date" | "submission_count"> }

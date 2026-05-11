@@ -22,14 +22,20 @@ Create `backend/.env` locally if needed. Do not commit real values.
 ```bash
 PORT=
 DATA_SOURCE=
+CORS_ORIGIN=
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 DEVPOST_INDEXER_TOKEN=
 LINKEDIN_DETECTION_TOKEN=
+ADMIN_TOKEN=
 INGEST_TOKEN=
 SCRAPER_USER_AGENT=
 DEVPOST_SCRAPE_DELAY_MS=
 DEVPOST_HACKATHON_DELAY_MS=
+DEVPOST_WATCH_INTERVAL_MS=
+DEVPOST_SKIP_RECENT_HOURS=
+DEVPOST_PRIORITY_KEYWORDS=
+DEVPOST_PRIORITY_ORGANIZERS=
 RESEND_API_KEY=
 RESEND_KEY=
 RESEND_FROM_EMAIL=
@@ -37,7 +43,9 @@ RESEND_FROM_EMAIL=
 
 `DATA_SOURCE=mock` uses the seeded in-memory demo data. `DATA_SOURCE=supabase` makes the existing API routes read from Supabase.
 
-`INGEST_TOKEN` is optional. If set, `POST /api/ingest/devpost` requires `Authorization: Bearer <token>`.
+`ADMIN_TOKEN` is optional but recommended. If set, offer mutations, email sending, ingestion controls, and admin ingestion status require `Authorization: Bearer <token>`. `INGEST_TOKEN` is accepted as a fallback for the same gate.
+
+`CORS_ORIGIN` can be set to the deployed frontend URL. If omitted, the backend allows all origins for local development.
 
 `RESEND_API_KEY` powers recruiter email sending. `RESEND_KEY` is also accepted as a fallback variable name. `RESEND_FROM_EMAIL` should be a verified Resend sender; if omitted, the backend uses `Sniper <onboarding@resend.dev>` for testing.
 
@@ -116,7 +124,7 @@ curl -X POST http://localhost:8080/api/ingest/devpost \
   -d '{"url":"https://thx.devpost.com/project-gallery","max_pages":1,"max_projects":12}'
 ```
 
-With `INGEST_TOKEN` set:
+With `ADMIN_TOKEN` or `INGEST_TOKEN` set:
 
 ```bash
 curl -X POST http://localhost:8080/api/ingest/devpost \
@@ -129,6 +137,7 @@ Automatic ingestion through the API:
 
 ```bash
 curl -X POST http://localhost:8080/api/ingest/devpost/all \
+  -H 'authorization: Bearer <token>' \
   -H 'content-type: application/json' \
   -d '{"max_list_pages":1,"max_hackathons":5,"max_project_pages":1,"max_projects_per_hackathon":24}'
 ```
@@ -189,6 +198,12 @@ Uncapped API ingestion requires both `all=true` and `confirm=true`.
 
 ```json
 { "offers": [{ "id": "offer-001", "developer_id": "dev-ada-kim", "status": "sent" }] }
+```
+
+`GET /api/admin/ingestion`
+
+```json
+{ "summary": { "completed": 8, "failed": 2 }, "runs": [{ "source_url": "https://thx.devpost.com/project-gallery", "status": "completed" }] }
 ```
 
 `POST /api/offers`

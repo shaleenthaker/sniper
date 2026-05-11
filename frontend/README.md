@@ -55,6 +55,8 @@ If `NEXT_PUBLIC_API_URL` is not set, the app defaults to `http://localhost:8080`
 
 `/offers` outgoing offers and status updates.
 
+`/admin` ingestion status, capped scrape controls, and admin token entry.
+
 ## Design Tokens
 
 Type is monospace throughout. The intended UI font is JetBrains Mono with IBM Plex Mono available for headings when installed on the host.
@@ -80,3 +82,5 @@ The frontend always calls `NEXT_PUBLIC_API_URL`. To switch from the seeded local
 ```bash
 NEXT_PUBLIC_API_URL=https://api.example.com npm run dev
 ```
+
+If the backend has `ADMIN_TOKEN` or `INGEST_TOKEN` set, open `/admin`, enter the token, and save it. The token is stored in browser local storage and attached to protected API calls.

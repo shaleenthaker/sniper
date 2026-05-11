@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import "./env.js";
 import { getEnv } from "./env.js";
@@ -10,6 +11,7 @@ import {
   getDeveloper,
   getGraph,
   getHackathon,
+  getIngestionOverview,
   getProject,
   listDevelopers,
   listFreshSignals,
@@ -21,7 +23,22 @@ import {
 
 const app = new Hono();
 
-app.use("*", cors({ origin: "*", allowMethods: ["GET", "POST", "PATCH", "OPTIONS"] }));
+app.use("*", cors({
+  origin: getEnv("CORS_ORIGIN") ?? "*",
+  allowHeaders: ["Content-Type", "Authorization"],
+  allowMethods: ["GET", "POST", "PATCH", "OPTIONS"]
+}));
+
+function configuredAdminToken() {
+  return getEnv("ADMIN_TOKEN") ?? getEnv("INGEST_TOKEN");
+}
+
+function requireAdmin(c: Context) {
+  const token = configuredAdminToken();
+  if (!token) return null;
+  if (c.req.header("authorization") === `Bearer ${token}`) return null;
+  return c.json({ error: "Unauthorized" }, 401);
+}
 
 app.get("/health", (c) => c.json({ ok: true }));
 
@@ -61,6 +78,8 @@ app.get("/api/graph", async (c) => {
 app.get("/api/offers", async (c) => c.json(await listOffers()));
 
 app.post("/api/offers", async (c) => {
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
   const body = await c.req.json().catch(() => null);
   if (!body?.developer_id || !body?.role_title || !body?.sender_name || !body?.sender_email) {
     return c.json({ error: "developer_id, role_title, sender_name, and sender_email are required" }, 400);
@@ -69,6 +88,8 @@ app.post("/api/offers", async (c) => {
 });
 
 app.patch("/api/offers/:id", async (c) => {
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
   const body = await c.req.json().catch(() => null);
   const allowed = ["sent", "accepted", "rejected", "withdrawn"];
   if (!allowed.includes(body?.status)) return c.json({ error: "Invalid status" }, 400);
@@ -78,6 +99,8 @@ app.patch("/api/offers/:id", async (c) => {
 });
 
 app.post("/api/developers/:id/email", async (c) => {
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
   const detail = await getDeveloper(c.req.param("id"));
   if (!detail) return c.json({ error: "Developer not found" }, 404);
   const body = await c.req.json().catch(() => null);
@@ -99,9 +122,15 @@ app.post("/api/developers/:id/email", async (c) => {
   }
 });
 
+app.get("/api/admin/ingestion", async (c) => {
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
+  return c.json(await getIngestionOverview(new URL(c.req.url).searchParams));
+});
+
 app.post("/api/ingest/devpost", async (c) => {
-  const token = getEnv("INGEST_TOKEN");
-  if (token && c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "Unauthorized" }, 401);
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
   const body = await c.req.json().catch(() => null);
   if (!body?.url) return c.json({ error: "url is required" }, 400);
   const result = await ingestDevpostHackathon({
@@ -116,8 +145,8 @@ app.post("/api/ingest/devpost", async (c) => {
 });
 
 app.post("/api/ingest/devpost/all", async (c) => {
-  const token = getEnv("INGEST_TOKEN");
-  if (token && c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "Unauthorized" }, 401);
+  const blocked = requireAdmin(c);
+  if (blocked) return blocked;
   const body = await c.req.json().catch(() => ({}));
   if (body.all && body.confirm !== true) {
     return c.json({ error: "Uncapped Devpost ingestion requires confirm=true" }, 400);

@@ -1,7 +1,7 @@
 import { dataSource } from "./env.js";
 import { hasSupabaseConfig, supabase } from "./supabase.js";
 import * as mock from "./data.js";
-import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, Offer, Project } from "./types.js";
+import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, IngestionRun, Offer, Project } from "./types.js";
 
 type DeveloperWithOffer = Developer & { offer?: Offer | null };
 
@@ -217,19 +217,20 @@ export async function listFreshSignals(query: URLSearchParams) {
   const hackathon = query.get("hackathon");
   const now = new Date().toISOString();
   const items: FreshSignal[] = snap.projects
-    .filter((project) => {
-      const members = projectMembers(project, snap);
-      return members.every((member) => !member.linkedin_announced_at) &&
+    .map((project) => ({ project, members: projectMembers(project, snap) }))
+    .filter(({ project, members }) => {
+      return members.length > 0 &&
+        members.every((member) => !member.linkedin_announced_at) &&
         (!since || Date.parse(project.submitted_at) >= Date.parse(since)) &&
         (!hackathon || project.hackathon_slug === hackathon) &&
         stack.every((tag) => project.stack.includes(tag));
     })
-    .sort((a, b) => Date.parse(b.submitted_at) - Date.parse(a.submitted_at))
+    .sort((a, b) => Date.parse(b.project.submitted_at) - Date.parse(a.project.submitted_at))
     .slice(0, 24)
-    .map((project) => ({
+    .map(({ project, members }) => ({
       project,
       hackathon: snap.hackathons.find((entry) => entry.slug === project.hackathon_slug) as Hackathon,
-      members: projectMembers(project, snap),
+      members,
       indexed_at: project.submitted_at,
       hours_since_indexed: hoursBetween(project.submitted_at, now),
       linkedin_detected: false as const
@@ -299,6 +300,46 @@ export async function getGraph(center = "hackathon:hackmit-2025", depth = 2) {
 export async function listOffers() {
   if (!useSupabase()) return { offers: mock.offers };
   return { offers: await unwrap(supabase().from("offers").select("*").order("created_at", { ascending: false }), "load offers") as Offer[] };
+}
+
+export async function getIngestionOverview(query: URLSearchParams) {
+  if (!useSupabase()) {
+    return {
+      summary: {
+        total_runs: 0,
+        completed: 0,
+        failed: 0,
+        started: 0,
+        projects_saved: 0,
+        developers_saved: 0,
+        latest_run: null,
+        last_success: null,
+        last_failure: null
+      },
+      runs: [] as IngestionRun[]
+    };
+  }
+
+  const limit = Math.min(Math.max(Number(query.get("limit") ?? 25), 1), 100);
+  const status = query.get("status");
+  let request = supabase().from("ingestion_runs").select("*").order("created_at", { ascending: false }).limit(limit);
+  if (status) request = request.eq("status", status);
+
+  const runs = await unwrap(request, "load ingestion runs") as IngestionRun[];
+  return {
+    summary: {
+      total_runs: runs.length,
+      completed: runs.filter((run) => run.status === "completed").length,
+      failed: runs.filter((run) => run.status === "failed").length,
+      started: runs.filter((run) => run.status === "started").length,
+      projects_saved: runs.reduce((sum, run) => sum + run.projects_saved, 0),
+      developers_saved: runs.reduce((sum, run) => sum + run.developers_saved, 0),
+      latest_run: runs[0] ?? null,
+      last_success: runs.find((run) => run.status === "completed") ?? null,
+      last_failure: runs.find((run) => run.status === "failed") ?? null
+    },
+    runs
+  };
 }
 
 export async function createOffer(input: Omit<Offer, "id" | "created_at" | "status" | "notes"> & { notes?: string | null }) {

@@ -13,7 +13,8 @@ const nav = [
   ["HACKATHONS", "/hackathons"],
   ["PROJECTS", "/projects"],
   ["FRESH FEED", "/feed"],
-  ["OFFERS", "/offers"]
+  ["OFFERS", "/offers"],
+  ["ADMIN", "/admin"]
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

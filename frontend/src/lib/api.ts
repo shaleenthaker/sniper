@@ -1,12 +1,27 @@
-import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, Offer, Project } from "./types";
+import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, IngestionOverview, Offer, Project } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const ADMIN_TOKEN_KEY = "sniper_admin_token";
+
+export function getAdminToken() {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(ADMIN_TOKEN_KEY) ?? "";
+}
+
+export function setAdminToken(value: string) {
+  if (typeof window === "undefined") return;
+  const token = value.trim();
+  if (token) window.localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  else window.localStorage.removeItem(ADMIN_TOKEN_KEY);
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const adminToken = getAdminToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       "content-type": "application/json",
+      ...(adminToken ? { authorization: `Bearer ${adminToken}` } : {}),
       ...init?.headers
     }
   });
@@ -29,6 +44,15 @@ export const api = {
   fresh: (params = "") => request<{ items: FreshSignal[] }>(`/api/feed/fresh${params ? `?${params}` : ""}`),
   graph: (params = "") => request<{ nodes: GraphNode[]; edges: GraphEdge[] }>(`/api/graph${params ? `?${params}` : ""}`),
   offers: () => request<{ offers: Offer[] }>("/api/offers"),
+  ingestion: (params = "") => request<IngestionOverview>(`/api/admin/ingestion${params ? `?${params}` : ""}`),
+  runDevpostIngestion: (body: {
+    dry_run?: boolean;
+    max_list_pages?: number;
+    max_hackathons?: number;
+    max_project_pages?: number;
+    max_projects_per_hackathon?: number;
+    skip_recent_hours?: number;
+  }) => request<Record<string, unknown>>("/api/ingest/devpost/all", { method: "POST", body: JSON.stringify(body) }),
   createOffer: (body: { developer_id: string; role_title: string; sender_name: string; sender_email: string; notes?: string | null }) =>
     request<{ offer: Offer }>("/api/offers", { method: "POST", body: JSON.stringify(body) }),
   updateOffer: (id: string, status: Offer["status"]) =>

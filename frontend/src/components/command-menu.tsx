@@ -27,6 +27,7 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
           <Command.Group heading="saved searches" className="text-[11px] uppercase text-[var(--ink-soft)]">
             <Command.Item onSelect={() => go("/developers?stack=react,rust&placed_top=3&sort=signal_lead")} className="cursor-pointer px-2 py-2 text-[12px] text-[var(--ink-mid)] aria-selected:bg-[var(--bg-hover)]">find top-3 developers using React and Rust</Command.Item>
             <Command.Item onSelect={() => go("/feed?stack=react")} className="cursor-pointer px-2 py-2 text-[12px] text-[var(--ink-mid)] aria-selected:bg-[var(--bg-hover)]">fresh pre-LinkedIn React signals</Command.Item>
+            <Command.Item onSelect={() => go("/admin")} className="cursor-pointer px-2 py-2 text-[12px] text-[var(--ink-mid)] aria-selected:bg-[var(--bg-hover)]">open ingestion admin</Command.Item>
           </Command.Group>
           <Command.Group heading="developers" className="text-[11px] uppercase text-[var(--ink-soft)]">
             {developers.data?.developers.map((developer) => (
