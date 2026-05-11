@@ -19,6 +19,7 @@ type IngestAllOptions = {
   maxHackathons?: number;
   maxProjectPages?: number;
   maxProjectsPerHackathon?: number;
+  skipRecentlyScrapedHours?: number;
   assignPodium?: boolean;
   dryRun?: boolean;
 };
@@ -97,6 +98,24 @@ async function saveScrape(scrape: ScrapedHackathon) {
   };
 }
 
+async function recentDevpostSourceUrls(hours: number) {
+  if (!Number.isFinite(hours) || hours <= 0) return [];
+
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  const rows = await assertNoSupabaseError(
+    supabase()
+      .from("ingestion_runs")
+      .select("source_url")
+      .eq("source", "devpost")
+      .eq("status", "completed")
+      .gte("completed_at", since)
+      .range(0, 9999),
+    "load recent Devpost ingestion runs"
+  ) as unknown as { source_url: string | null }[];
+
+  return unique(rows.map((row) => row.source_url).filter(Boolean) as string[]);
+}
+
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -159,16 +178,23 @@ export async function ingestDevpostHackathon(options: IngestOptions) {
 }
 
 export async function ingestAllDevpostHackathons(options: IngestAllOptions = {}) {
+  const excludeSourceUrls = options.dryRun || !options.skipRecentlyScrapedHours
+    ? []
+    : await recentDevpostSourceUrls(options.skipRecentlyScrapedHours);
+
   const discovery = await discoverDevpostHackathons({
     status: options.status ?? "ended",
     query: options.query,
     maxListPages: options.maxListPages,
-    maxHackathons: options.maxHackathons
+    maxHackathons: options.maxHackathons,
+    excludeSourceUrls
   });
 
   const results: Array<{
     title: string;
     url: string;
+    priority_score: number;
+    priority_reasons: string[];
     ok: boolean;
     projects_found?: number;
     projects_saved?: number;
@@ -188,6 +214,8 @@ export async function ingestAllDevpostHackathons(options: IngestAllOptions = {})
       results.push({
         title: hackathon.title,
         url: hackathon.submission_gallery_url,
+        priority_score: hackathon.priority_score,
+        priority_reasons: hackathon.priority_reasons,
         ok: true,
         projects_found: result.projects_found,
         projects_saved: result.projects_saved,
@@ -197,6 +225,8 @@ export async function ingestAllDevpostHackathons(options: IngestAllOptions = {})
       results.push({
         title: hackathon.title,
         url: hackathon.submission_gallery_url,
+        priority_score: hackathon.priority_score,
+        priority_reasons: hackathon.priority_reasons,
         ok: false,
         error: error instanceof Error ? error.message : String(error)
       });
@@ -209,6 +239,7 @@ export async function ingestAllDevpostHackathons(options: IngestAllOptions = {})
     status: options.status ?? "ended",
     pages_scanned: discovery.pages_scanned,
     total_pages_available: discovery.total_pages_available,
+    hackathons_skipped_recently: discovery.hackathons_skipped,
     hackathons_discovered: discovery.hackathons.length,
     hackathons_succeeded: results.filter((result) => result.ok).length,
     hackathons_failed: results.filter((result) => !result.ok).length,

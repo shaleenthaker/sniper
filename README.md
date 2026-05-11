@@ -49,6 +49,16 @@ Or automatically discover ended Devpost hackathons and scrape each project galle
 npm run scrape:devpost:all -- --max-list-pages 1 --max-hackathons 5 --max-project-pages 1 --max-projects-per-hackathon 24
 ```
 
+Automatic discovery prioritizes high-profile hackathons first using registration count, winner-announced state, recency, organizer names, and keywords.
+
+Run the scraper continuously:
+
+```bash
+npm run scrape:devpost:watch -- --max-list-pages 3 --max-hackathons 10 --max-project-pages 1 --max-projects-per-hackathon 24
+```
+
+The watcher skips hackathons scraped successfully in the last 24 hours by default, so it keeps moving through prioritized events instead of reprocessing the same few galleries every cycle.
+
 For an uncapped run across all discovered ended hackathons:
 
 ```bash

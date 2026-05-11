@@ -21,3 +21,17 @@ export function scraperDelayMs() {
 export function hackathonDelayMs() {
   return Number(getEnv("DEVPOST_HACKATHON_DELAY_MS") ?? 2500);
 }
+
+export function watchIntervalMs() {
+  return Number(getEnv("DEVPOST_WATCH_INTERVAL_MS") ?? 900000);
+}
+
+export function skipRecentHackathonsHours() {
+  return Number(getEnv("DEVPOST_SKIP_RECENT_HOURS") ?? 24);
+}
+
+export function csvEnv(name: string, fallback: string[] = []) {
+  const value = getEnv(name);
+  if (!value) return fallback;
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}

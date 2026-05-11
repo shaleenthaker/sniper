@@ -8,7 +8,8 @@
     "build": "tsc --noEmit",
     "start": "tsx src/index.ts",
     "scrape:devpost": "tsx src/cli/scrape-devpost.ts",
-    "scrape:devpost:all": "tsx src/cli/scrape-devpost-all.ts"
+    "scrape:devpost:all": "tsx src/cli/scrape-devpost-all.ts",
+    "scrape:devpost:watch": "tsx src/cli/scrape-devpost-watch.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

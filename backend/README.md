@@ -73,6 +73,13 @@ Automatically discover ended public Devpost hackathons and scrape their gallerie
 npm run scrape:devpost:all -- --max-list-pages 1 --max-hackathons 5 --max-project-pages 1 --max-projects-per-hackathon 24
 ```
 
+Discovery is priority sorted before scraping. The default score boosts high-registration events, winner-announced events, recent events, well-known university/organizer names, and AI/platform keywords. Tune the score with:
+
+```bash
+DEVPOST_PRIORITY_KEYWORDS=hackmit,treehacks,cal hacks,ai,openai
+DEVPOST_PRIORITY_ORGANIZERS=mit,stanford,uc berkeley,major league hacking
+```
+
 Dry run automatic discovery without Supabase writes:
 
 ```bash
@@ -86,6 +93,20 @@ npm run scrape:devpost:all -- --all --yes
 ```
 
 Uncapped mode can take hours and makes many public Devpost requests. Use `DEVPOST_SCRAPE_DELAY_MS` and `DEVPOST_HACKATHON_DELAY_MS` to slow it down. The writes are upserts, so the command can be rerun.
+
+Run continuously:
+
+```bash
+npm run scrape:devpost:watch -- --max-list-pages 3 --max-hackathons 10 --max-project-pages 1 --max-projects-per-hackathon 24
+```
+
+Run one watcher cycle for testing:
+
+```bash
+npm run scrape:devpost:watch -- --once --dry-run --max-list-pages 1 --max-hackathons 3 --max-project-pages 1 --max-projects-per-hackathon 1
+```
+
+The watcher sleeps between cycles. Set `DEVPOST_WATCH_INTERVAL_MS` or pass `--interval-ms`; the default is 15 minutes. It also skips hackathons that completed successfully in the last 24 hours so each cycle keeps moving through the priority queue. Set `DEVPOST_SKIP_RECENT_HOURS`, pass `--skip-recent-hours`, or pass `--no-skip-recent` to change that.
 
 You can also ingest through the API:
 

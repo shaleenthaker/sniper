@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { CheerioAPI } from "cheerio";
-import { getEnv, scraperDelayMs } from "./env.js";
+import { csvEnv, getEnv, scraperDelayMs } from "./env.js";
 import { developerIdFromHandle, projectIdFromUrl, slugify } from "./ids.js";
 import type { Developer, Hackathon, Project } from "./types.js";
 
@@ -27,6 +27,8 @@ export type DiscoveredDevpostHackathon = {
   submission_period_dates: string | null;
   registrations_count: number | null;
   winners_announced: boolean;
+  priority_score: number;
+  priority_reasons: string[];
 };
 
 type GalleryProject = {
@@ -36,6 +38,46 @@ type GalleryProject = {
   winner: boolean;
   members: ScrapedDeveloper[];
 };
+
+const defaultPriorityKeywords = [
+  "mit",
+  "stanford",
+  "berkeley",
+  "harvard",
+  "waterloo",
+  "penn",
+  "hack the north",
+  "hackmit",
+  "treehacks",
+  "cal hacks",
+  "pennapps",
+  "hackharvard",
+  "major league hacking",
+  "mlh",
+  "ai",
+  "machine learning",
+  "openai",
+  "google",
+  "meta",
+  "microsoft",
+  "nvidia",
+  "y combinator"
+];
+
+const defaultPriorityOrganizers = [
+  "mit",
+  "stanford",
+  "uc berkeley",
+  "harvard",
+  "waterloo",
+  "penn",
+  "major league hacking",
+  "mlh",
+  "google",
+  "microsoft",
+  "nvidia",
+  "openai"
+];
 
 function compactText(value: string | null | undefined) {
   return (value ?? "").replace(/\s+/g, " ").trim();
@@ -58,6 +100,82 @@ function galleryUrl(url: string, page: number) {
   if (!parsed.pathname.includes("project-gallery")) parsed.pathname = "/project-gallery";
   parsed.searchParams.set("page", String(page));
   return parsed.toString();
+}
+
+function parseEndYear(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/\b(20\d{2})\b/g);
+  if (!match?.length) return null;
+  return Number(match[match.length - 1]);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasPriorityTerm(values: string[], keyword: string) {
+  const normalized = keyword.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const requiresBoundary = /^[a-z0-9]+$/.test(normalized) && normalized.length <= 3;
+  return values.some((value) => {
+    const haystack = value.toLowerCase();
+    if (!requiresBoundary) return haystack.includes(normalized);
+    return new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalized)}([^a-z0-9]|$)`).test(haystack);
+  });
+}
+
+function scoreHackathon(input: {
+  title: string;
+  organization_name: string | null;
+  registrations_count: number | null;
+  winners_announced: boolean;
+  submission_period_dates: string | null;
+  themes?: { name: string }[];
+}) {
+  const reasons: string[] = [];
+  let score = 0;
+  const title = input.title.toLowerCase();
+  const organizer = (input.organization_name ?? "").toLowerCase();
+  const themes = input.themes?.map((theme) => theme.name.toLowerCase()) ?? [];
+  const titleSignals = [title, ...themes];
+  const keywords = csvEnv("DEVPOST_PRIORITY_KEYWORDS", defaultPriorityKeywords).map((keyword) => keyword.toLowerCase());
+  const organizers = csvEnv("DEVPOST_PRIORITY_ORGANIZERS", defaultPriorityOrganizers).map((keyword) => keyword.toLowerCase());
+
+  const registrations = input.registrations_count ?? 0;
+  if (registrations >= 1000) {
+    score += 45;
+    reasons.push(`registrations>=1000`);
+  } else if (registrations >= 500) {
+    score += 30;
+    reasons.push(`registrations>=500`);
+  } else if (registrations >= 100) {
+    score += 12;
+    reasons.push(`registrations>=100`);
+  }
+
+  keywords.filter((keyword) => hasPriorityTerm(titleSignals, keyword)).slice(0, 3).forEach((keyword) => {
+    score += 20;
+    reasons.push(`keyword:${keyword}`);
+  });
+
+  organizers.filter((keyword) => hasPriorityTerm([organizer], keyword)).slice(0, 2).forEach((keyword) => {
+    score += 25;
+    reasons.push(`organizer:${keyword}`);
+  });
+
+  if (input.winners_announced) {
+    score += 15;
+    reasons.push("winners-announced");
+  }
+
+  const endYear = parseEndYear(input.submission_period_dates);
+  if (endYear && endYear >= new Date().getFullYear() - 1) {
+    score += 10;
+    reasons.push("recent");
+  }
+
+  return { score, reasons };
 }
 
 async function sleep(ms: number) {
@@ -243,9 +361,19 @@ export async function scrapeDevpostHackathon(input: { url: string; slug?: string
   };
 }
 
-export async function discoverDevpostHackathons(input: { status?: string; maxListPages?: number; maxHackathons?: number; query?: string } = {}) {
+export async function discoverDevpostHackathons(input: {
+  status?: string;
+  maxListPages?: number;
+  maxHackathons?: number;
+  query?: string;
+  excludeSourceUrls?: string[];
+} = {}) {
   const status = input.status ?? "ended";
+  const maxListPages = input.maxListPages ?? (input.maxHackathons ? 1 : undefined);
+  const excludedUrls = new Set(input.excludeSourceUrls ?? []);
   const discovered: DiscoveredDevpostHackathon[] = [];
+  let pagesScanned = 0;
+  let hackathonsSkipped = 0;
   let page = 1;
   let totalPages = 1;
 
@@ -266,15 +394,24 @@ export async function discoverDevpostHackathons(input: { status?: string; maxLis
         submission_period_dates: string | null;
         registrations_count: number | null;
         winners_announced: boolean;
+        themes?: { name: string }[];
       }>;
       meta?: { total_count?: number; per_page?: number };
     }>(url.toString());
 
     const perPage = payload.meta?.per_page ?? Math.max(payload.hackathons.length, 1);
     totalPages = Math.max(1, Math.ceil((payload.meta?.total_count ?? payload.hackathons.length) / perPage));
+    pagesScanned += 1;
+
     payload.hackathons
       .filter((hackathon) => hackathon.submission_gallery_url)
       .forEach((hackathon) => {
+        if (excludedUrls.has(hackathon.submission_gallery_url as string)) {
+          hackathonsSkipped += 1;
+          return;
+        }
+
+        const priority = scoreHackathon(hackathon);
         discovered.push({
           id: hackathon.id,
           title: hackathon.title,
@@ -284,19 +421,23 @@ export async function discoverDevpostHackathons(input: { status?: string; maxLis
           open_state: hackathon.open_state,
           submission_period_dates: hackathon.submission_period_dates,
           registrations_count: hackathon.registrations_count,
-          winners_announced: hackathon.winners_announced
+          winners_announced: hackathon.winners_announced,
+          priority_score: priority.score,
+          priority_reasons: priority.reasons
         });
       });
 
-    if (input.maxHackathons && discovered.length >= input.maxHackathons) break;
-    if (input.maxListPages && page >= input.maxListPages) break;
+    if (maxListPages && page >= maxListPages) break;
     page += 1;
     await sleep(scraperDelayMs());
   }
 
   return {
-    hackathons: discovered.slice(0, input.maxHackathons ?? discovered.length),
-    pages_scanned: Math.min(page, input.maxListPages ?? page),
-    total_pages_available: totalPages
+    hackathons: discovered
+      .sort((a, b) => b.priority_score - a.priority_score || (b.registrations_count ?? 0) - (a.registrations_count ?? 0))
+      .slice(0, input.maxHackathons ?? discovered.length),
+    pages_scanned: pagesScanned,
+    total_pages_available: totalPages,
+    hackathons_skipped: hackathonsSkipped
   };
 }

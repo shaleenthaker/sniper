@@ -130,6 +130,7 @@ app.post("/api/ingest/devpost/all", async (c) => {
     maxHackathons: uncapped ? undefined : body.max_hackathons ?? 5,
     maxProjectPages: uncapped ? undefined : body.max_project_pages ?? 1,
     maxProjectsPerHackathon: uncapped ? undefined : body.max_projects_per_hackathon ?? 24,
+    skipRecentlyScrapedHours: body.skip_recent_hours,
     assignPodium: body.assign_podium ?? true,
     dryRun: body.dry_run ?? false
   });
