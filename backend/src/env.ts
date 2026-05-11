@@ -11,6 +11,7 @@ export function requireEnv(name: string) {
 }
 
 export function dataSource() {
+  if (getEnv("DEMO_MODE") === "true") return "mock";
   return getEnv("DATA_SOURCE") === "supabase" ? "supabase" : "mock";
 }
 

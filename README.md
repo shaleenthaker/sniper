@@ -61,6 +61,21 @@ Uncapped runs can take hours. Start with the capped command first.
 
 The same API routes then serve scraped Supabase data instead of the local seed.
 
+## Demo Branch Email Flow
+
+On the `demo` branch, `DEMO_MODE=true` forces the backend to use the hardcoded demo dataset with `Shaleen Thaker` as the top developer.
+
+For a live email demo, set these in `backend/.env`:
+
+```bash
+DEMO_MODE=true
+DEMO_RECIPIENT_EMAIL=you@example.com
+RESEND_API_KEY=your_resend_key
+RESEND_FROM_EMAIL="Your Name <you@yourdomain.com>"
+```
+
+Then start the backend and frontend. Open `/developers`, choose `Shaleen Thaker`, and click `+EMAIL`.
+
 ## Verification
 
 ```bash

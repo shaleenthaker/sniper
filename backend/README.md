@@ -37,6 +37,8 @@ RESEND_FROM_EMAIL=
 
 `DATA_SOURCE=mock` uses the seeded in-memory demo data. `DATA_SOURCE=supabase` makes the existing API routes read from Supabase.
 
+`DEMO_MODE=true` forces seeded data even when `DATA_SOURCE=supabase` is set. The `demo` branch uses this to show the hardcoded Shaleen Thaker profile for live email demos. Set `DEMO_RECIPIENT_EMAIL` to prefill the email recipient without committing a personal address.
+
 `INGEST_TOKEN` is optional. If set, `POST /api/ingest/devpost` requires `Authorization: Bearer <token>`.
 
 `RESEND_API_KEY` powers recruiter email sending. `RESEND_KEY` is also accepted as a fallback variable name. `RESEND_FROM_EMAIL` should be a verified Resend sender; if omitted, the backend uses `Sniper <onboarding@resend.dev>` for testing.

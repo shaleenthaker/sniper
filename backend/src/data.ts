@@ -1,4 +1,5 @@
 import { developerProfiles, hackathons, offers, projects } from "./seed.js";
+import { getEnv } from "./env.js";
 import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, Offer, Project } from "./types.js";
 
 const now = new Date("2025-11-16T12:00:00Z");
@@ -19,6 +20,8 @@ export function allDevelopers(): Developer[] {
     const wins = devProjects.filter((project) => project.placement !== null).length;
     const signal_lead_hours = linkedInAnnounced ? hoursBetween(firstIndexed, linkedInAnnounced) : null;
 
+    const demoEmail = id === "dev-shaleen-thaker" ? getEnv("DEMO_RECIPIENT_EMAIL") : undefined;
+
     return {
       id,
       name,
@@ -32,7 +35,7 @@ export function allDevelopers(): Developer[] {
         devpost: `https://devpost.com/${handle}`,
         github: `https://github.com/${handle}`,
         linkedin: linkedInAnnounced ? `https://linkedin.com/in/${handle}` : undefined,
-        email: `${handle}@example.com`
+        email: demoEmail ?? `${handle}@example.com`
       },
       linkedin_announced_at: linkedInAnnounced,
       first_indexed_at: firstIndexed,

@@ -1,6 +1,7 @@
 import type { Hackathon, Offer, Project } from "./types.js";
 
 export const developerProfiles = [
+  ["dev-shaleen-thaker", "Shaleen Thaker", "shaleenthaker", "Builder of recruiter-grade hackathon signal tools; fast across product, data, and full-stack TypeScript.", "2026-05-11T08:00:00Z", null],
   ["dev-ada-kim", "Ada Kim", "adak", "Edge ML builder; ships fast on tiny teams.", "2025-11-01T09:00:00Z", null],
   ["dev-miles-chen", "Miles Chen", "mchen", "Full-stack systems engineer with infra taste.", "2025-10-22T13:30:00Z", "2025-12-02T17:00:00Z"],
   ["dev-priya-narayan", "Priya Narayan", "priyan", "Computer vision hacker focused on health AI.", "2025-09-18T18:15:00Z", null],
@@ -34,6 +35,7 @@ export const developerProfiles = [
 ] as const;
 
 export const hackathons: Hackathon[] = [
+  { slug: "sniper-demo-2026", name: "Sniper Demo Hackathon 2026", organizer: "Shaleen Thaker", start_date: "2026-05-10", end_date: "2026-05-11", url: "https://devpost.com/shaleenthaker", submission_count: 3, top_stacks: ["nextjs", "typescript", "hono", "supabase", "resend"] },
   { slug: "hackmit-2025", name: "HackMIT 2025", organizer: "MIT", start_date: "2025-09-13", end_date: "2025-09-14", url: "https://hackmit.org", submission_count: 128, top_stacks: ["react", "typescript", "python", "rust"] },
   { slug: "treehacks-2025", name: "TreeHacks 2025", organizer: "Stanford", start_date: "2025-02-14", end_date: "2025-02-16", url: "https://treehacks.com", submission_count: 214, top_stacks: ["python", "nextjs", "pytorch", "postgres"] },
   { slug: "calhacks-2025", name: "Cal Hacks 2025", organizer: "UC Berkeley", start_date: "2025-10-17", end_date: "2025-10-19", url: "https://calhacks.io", submission_count: 187, top_stacks: ["react", "go", "supabase", "tailwind"] },
@@ -52,6 +54,8 @@ export const hackathons: Hackathon[] = [
 ];
 
 export const projects: Project[] = [
+  ["proj-demo-sniper", "Sniper Talent Radar", "Pre-LinkedIn recruiter signal from Devpost", "A recruiter-facing browser that indexes hackathon submissions, ranks developers by stack and podium signal, and lets recruiters email promising builders before the usual LinkedIn announcement cycle.", "sniper-demo-2026", ["nextjs", "typescript", "hono", "supabase", "resend", "tailwind"], 1, ["dev-shaleen-thaker"], "2026-05-11T08:30:00Z"],
+  ["proj-demo-graph", "Podium Graph Browser", "Hackathon fallback lists as a graph", "A graph exploration mode for moving from a winning project to teammates, fallback candidates, and adjacent hackathon appearances.", "sniper-demo-2026", ["react", "typescript", "graph", "devpost"], 2, ["dev-shaleen-thaker", "dev-ada-kim"], "2026-05-11T08:10:00Z"],
   ["proj-001", "Latency Lens", "Pre-LinkedIn talent radar", "Indexes Devpost winners and highlights recruiter snipe windows.", "hackmit-2025", ["react", "typescript", "hono", "postgres"], 1, ["dev-ada-kim", "dev-miles-chen", "dev-amara-green"], "2025-09-14T21:10:00Z"],
   ["proj-002", "RustRail", "Realtime transit optimizer", "A low-latency routing engine for campus shuttles.", "hackmit-2025", ["rust", "wasm", "maps"], 2, ["dev-noah-singh", "dev-sam-rivera"], "2025-09-14T20:55:00Z"],
   ["proj-003", "NeuroNote", "Clinical notes from bedside audio", "Turns clinician voice notes into structured summaries.", "hackmit-2025", ["python", "llm", "health", "react"], 3, ["dev-priya-narayan", "dev-rhea-shah"], "2025-09-14T20:40:00Z"],
