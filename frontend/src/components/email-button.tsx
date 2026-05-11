@@ -15,13 +15,17 @@ export function EmailButton({ developerId, defaultTo, developerName, label }: { 
   const hasAdminToken = adminToken.trim().length > 0;
   const actionLabel = label ?? (defaultTo ? "+EMAIL" : "+ADD EMAIL");
   const mutation = useMutation({
-    mutationFn: () => api.sendDeveloperEmail(developerId, {
-      to: to.trim() || undefined,
-      subject,
-      message,
-      sender_name: "Mara Stone",
-      sender_email: "mara@northstar.example"
-    })
+    mutationFn: () => {
+      const token = adminToken.trim();
+      setAdminToken(token);
+      return api.sendDeveloperEmail(developerId, {
+        to: to.trim() || undefined,
+        subject,
+        message,
+        sender_name: "Mara Stone",
+        sender_email: "mara@northstar.example"
+      }, token);
+    }
   });
 
   useEffect(() => {

@@ -15,14 +15,17 @@ export function setAdminToken(value: string) {
   else window.localStorage.removeItem(ADMIN_TOKEN_KEY);
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const adminToken = getAdminToken();
+type ApiRequestInit = RequestInit & { adminToken?: string };
+
+async function request<T>(path: string, init?: ApiRequestInit): Promise<T> {
+  const { adminToken: explicitAdminToken, ...requestInit } = init ?? {};
+  const adminToken = explicitAdminToken ?? getAdminToken();
   const res = await fetch(`${API_URL}${path}`, {
-    ...init,
+    ...requestInit,
     headers: {
       "content-type": "application/json",
       ...(adminToken ? { authorization: `Bearer ${adminToken}` } : {}),
-      ...init?.headers
+      ...requestInit.headers
     }
   });
 
@@ -57,8 +60,8 @@ export const api = {
     request<{ offer: Offer }>("/api/offers", { method: "POST", body: JSON.stringify(body) }),
   updateOffer: (id: string, status: Offer["status"]) =>
     request<{ offer: Offer }>(`/api/offers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  sendDeveloperEmail: (id: string, body: { to?: string; subject: string; message: string; sender_name: string; sender_email?: string }) =>
-    request<{ email: { id: string | null; to: string; subject: string; developer_id: string } }>(`/api/developers/${id}/email`, { method: "POST", body: JSON.stringify(body) })
+  sendDeveloperEmail: (id: string, body: { to?: string; subject: string; message: string; sender_name: string; sender_email?: string }, adminToken?: string) =>
+    request<{ email: { id: string | null; to: string; subject: string; developer_id: string } }>(`/api/developers/${id}/email`, { method: "POST", body: JSON.stringify(body), adminToken })
 };
 
 export const queryStale = {
