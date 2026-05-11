@@ -12,7 +12,7 @@ No applicant-facing workflow. No OA flow. No scoring system.
 
 `frontend/` is a Next.js 15 App Router UI on port `3000`.
 
-Deployment notes are in `DEPLOYMENT.md`. The repo includes `render.yaml` for the Render backend API and scraper worker, plus `frontend/vercel.json` for Vercel.
+Deployment notes are in `DEPLOYMENT.md`. The free deployment path uses Vercel for both frontend/backend and GitHub Actions for scheduled scraping.
 
 ## Run Locally
 
