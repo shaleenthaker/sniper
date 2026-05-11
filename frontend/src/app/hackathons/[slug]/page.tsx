@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, queryStale } from "@/lib/api";
 import { shortDate } from "@/lib/utils";
+import { EmailButton } from "@/components/email-button";
 import { OfferButton } from "@/components/offer-button";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/states";
 import type { Developer } from "@/lib/types";
@@ -51,7 +52,14 @@ export default function HackathonDetailPage() {
                   <Link href={`/projects/${row.project.id}`} className="text-[var(--ink)]">{row.project.title}</Link>
                   {fallbackRank === row.rank ? <div className="mt-1 text-[var(--signal)]">next-up if 01 declines</div> : null}
                 </div>
-                <div>{row.members.map((member) => <Link key={member.id} href={`/developers/${member.id}`} className="mr-2 text-[var(--ink-mid)]">{member.name}</Link>)}</div>
+                <div className="space-y-1">
+                  {row.members.map((member) => (
+                    <div key={member.id} className="flex flex-wrap items-center gap-1">
+                      <Link href={`/developers/${member.id}`} className="text-[var(--ink-mid)]">{member.name}</Link>
+                      <EmailButton developerId={member.id} developerName={member.name} defaultTo={member.links.email} label="+EMAIL" />
+                    </div>
+                  ))}
+                </div>
                 <div>{row.project.stack.slice(0, 4).map((tag) => <span key={tag} className="chip mr-1">{tag}</span>)}</div>
                 <div className="flex flex-wrap items-center gap-2">
                   {status ? <span className={status === "rejected" ? "text-[var(--offered)]" : "text-[var(--accent)]"}>■ {status}</span> : <OfferButton developerId={row.members[0].id} />}

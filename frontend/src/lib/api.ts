@@ -32,7 +32,9 @@ export const api = {
   createOffer: (body: { developer_id: string; role_title: string; sender_name: string; sender_email: string; notes?: string | null }) =>
     request<{ offer: Offer }>("/api/offers", { method: "POST", body: JSON.stringify(body) }),
   updateOffer: (id: string, status: Offer["status"]) =>
-    request<{ offer: Offer }>(`/api/offers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) })
+    request<{ offer: Offer }>(`/api/offers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  sendDeveloperEmail: (id: string, body: { to?: string; subject: string; message: string; sender_name: string; sender_email?: string }) =>
+    request<{ email: { id: string | null; to: string; subject: string; developer_id: string } }>(`/api/developers/${id}/email`, { method: "POST", body: JSON.stringify(body) })
 };
 
 export const queryStale = {

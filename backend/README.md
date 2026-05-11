@@ -29,11 +29,17 @@ LINKEDIN_DETECTION_TOKEN=
 INGEST_TOKEN=
 SCRAPER_USER_AGENT=
 DEVPOST_SCRAPE_DELAY_MS=
+DEVPOST_HACKATHON_DELAY_MS=
+RESEND_API_KEY=
+RESEND_KEY=
+RESEND_FROM_EMAIL=
 ```
 
 `DATA_SOURCE=mock` uses the seeded in-memory demo data. `DATA_SOURCE=supabase` makes the existing API routes read from Supabase.
 
 `INGEST_TOKEN` is optional. If set, `POST /api/ingest/devpost` requires `Authorization: Bearer <token>`.
+
+`RESEND_API_KEY` powers recruiter email sending. `RESEND_KEY` is also accepted as a fallback variable name. `RESEND_FROM_EMAIL` should be a verified Resend sender; if omitted, the backend uses `Sniper <onboarding@resend.dev>` for testing.
 
 ## Supabase Setup
 
@@ -192,6 +198,24 @@ Response:
 
 ```json
 { "offer": { "id": "offer-001", "status": "rejected" } }
+```
+
+`POST /api/developers/:id/email`
+
+```json
+{
+  "to": "candidate@example.com",
+  "subject": "Quick note about your hackathon work",
+  "message": "I saw your project and would like to talk.",
+  "sender_name": "Mara Stone",
+  "sender_email": "mara@example.com"
+}
+```
+
+Response:
+
+```json
+{ "email": { "id": "resend_email_id", "to": "candidate@example.com", "developer_id": "devpost-handle" } }
 ```
 
 `POST /api/ingest/devpost`

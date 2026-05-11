@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { api, queryStale } from "@/lib/api";
 import { leadLabel, shortDate } from "@/lib/utils";
+import { EmailButton } from "@/components/email-button";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/states";
 
 function setParam(params: URLSearchParams, key: string, value: string) {
@@ -74,7 +75,7 @@ function DevelopersContent() {
         {developers.isLoading ? <LoadingRows /> : developers.isError ? <ErrorState error={developers.error} /> : developers.data?.developers.length ? (
           <table className="dense-table text-[12px]">
             <thead>
-              <tr><th>name</th><th>stack</th><th>hackathons</th><th>last won</th><th>lead</th><th>status</th><th>→</th></tr>
+              <tr><th>name</th><th>stack</th><th>hackathons</th><th>last won</th><th>lead</th><th>status</th><th>actions</th></tr>
             </thead>
             <tbody>
               {developers.data.developers.map((developer) => (
@@ -85,7 +86,10 @@ function DevelopersContent() {
                   <td>{shortDate(developer.first_indexed_at)}</td>
                   <td className="text-[var(--signal)]">{leadLabel(developer.signal_lead_hours)}</td>
                   <td className={developer.offer ? "text-[var(--offered)]" : "text-[var(--accent)]"}>{developer.offer ? "■ offered" : "□ open"}</td>
-                  <td><Link href={`/developers/${developer.id}`} className="text-[var(--accent)]">→</Link></td>
+                  <td className="space-x-1">
+                    <EmailButton developerId={developer.id} developerName={developer.name} defaultTo={developer.links.email} />
+                    <Link href={`/developers/${developer.id}`} className="inline-block border hairline px-2 py-1 text-[11px] text-[var(--accent)]">→</Link>
+                  </td>
                 </tr>
               ))}
             </tbody>

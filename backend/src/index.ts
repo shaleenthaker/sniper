@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import "./env.js";
 import { getEnv } from "./env.js";
+import { sendDeveloperEmail } from "./email.js";
 import { ingestAllDevpostHackathons, ingestDevpostHackathon } from "./ingest.js";
 import {
   createOffer,
@@ -74,6 +75,28 @@ app.patch("/api/offers/:id", async (c) => {
   const offer = await updateOffer(c.req.param("id"), body.status);
   if (!offer) return c.json({ error: "Offer not found" }, 404);
   return c.json({ offer });
+});
+
+app.post("/api/developers/:id/email", async (c) => {
+  const detail = await getDeveloper(c.req.param("id"));
+  if (!detail) return c.json({ error: "Developer not found" }, 404);
+  const body = await c.req.json().catch(() => null);
+  if (!body?.subject || !body?.message || !body?.sender_name) {
+    return c.json({ error: "subject, message, and sender_name are required" }, 400);
+  }
+
+  try {
+    const email = await sendDeveloperEmail(detail.developer, {
+      to: body.to,
+      subject: body.subject,
+      message: body.message,
+      sender_name: body.sender_name,
+      sender_email: body.sender_email
+    });
+    return c.json({ email }, 201);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : "Email send failed" }, 400);
+  }
 });
 
 app.post("/api/ingest/devpost", async (c) => {

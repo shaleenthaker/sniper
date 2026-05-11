@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api, queryStale } from "@/lib/api";
 import { initials, shortDate } from "@/lib/utils";
+import { EmailButton } from "@/components/email-button";
 import { OfferButton } from "@/components/offer-button";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/states";
 
@@ -31,7 +32,10 @@ export default function DeveloperDetailPage() {
           {developer.links.linkedin ? <a className="block" href={developer.links.linkedin} target="_blank">linkedin ↗</a> : null}
         </div>
         <div className="mb-5 flex flex-wrap gap-1">{developer.stack.map((tag) => <span key={tag} className="chip">{tag}</span>)}</div>
-        <OfferButton developerId={developer.id} label="+ SEND OFFER" />
+        <div className="flex flex-wrap gap-2">
+          <EmailButton developerId={developer.id} developerName={developer.name} defaultTo={developer.links.email} label="+ SEND EMAIL" />
+          <OfferButton developerId={developer.id} label="+ SEND OFFER" />
+        </div>
       </aside>
       <section className="p-4">
         <h2 className="mb-3 text-[12px] uppercase text-[var(--ink-mid)]">hackathon history</h2>

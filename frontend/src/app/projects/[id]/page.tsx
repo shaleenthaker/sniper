@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api, queryStale } from "@/lib/api";
 import { shortDate } from "@/lib/utils";
+import { EmailButton } from "@/components/email-button";
 import { OfferButton } from "@/components/offer-button";
 import { EmptyState, ErrorState, LoadingRows } from "@/components/states";
 
@@ -33,14 +34,17 @@ export default function ProjectDetailPage() {
       <section className="mb-6">
         <h2 className="mb-2 text-[12px] uppercase text-[var(--ink-mid)]">team</h2>
         <table className="dense-table text-[12px]">
-          <thead><tr><th>developer</th><th>stack</th><th>status</th><th>offer</th></tr></thead>
+          <thead><tr><th>developer</th><th>stack</th><th>status</th><th>actions</th></tr></thead>
           <tbody>
             {members.map((member) => (
               <tr key={member.id}>
                 <td><Link href={`/developers/${member.id}`}>{member.name}</Link><div className="text-[var(--ink-soft)]">@{member.handle}</div></td>
                 <td>{member.stack.slice(0, 6).map((tag) => <span key={tag} className="chip mr-1">{tag}</span>)}</td>
                 <td className={member.offer ? "text-[var(--offered)]" : "text-[var(--accent)]"}>{member.offer ? `■ ${member.offer.status}` : "□ open"}</td>
-                <td><OfferButton developerId={member.id} /></td>
+                <td className="space-x-1">
+                  <EmailButton developerId={member.id} developerName={member.name} defaultTo={member.links.email} />
+                  <OfferButton developerId={member.id} />
+                </td>
               </tr>
             ))}
           </tbody>
