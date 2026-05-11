@@ -32,6 +32,35 @@ npm run dev
 
 The frontend defaults to `NEXT_PUBLIC_API_URL=http://localhost:8080`.
 
+## Live Devpost Data
+
+1. Run `backend/supabase/schema.sql` in the Supabase SQL editor.
+2. Put `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `backend/.env`.
+3. Scrape a Devpost gallery:
+
+```bash
+cd backend
+npm run scrape:devpost -- --url https://thx.devpost.com/project-gallery --max-pages 1 --max-projects 24
+```
+
+Or automatically discover ended Devpost hackathons and scrape each project gallery:
+
+```bash
+npm run scrape:devpost:all -- --max-list-pages 1 --max-hackathons 5 --max-project-pages 1 --max-projects-per-hackathon 24
+```
+
+For an uncapped run across all discovered ended hackathons:
+
+```bash
+npm run scrape:devpost:all -- --all --yes
+```
+
+Uncapped runs can take hours. Start with the capped command first.
+
+4. Set `DATA_SOURCE=supabase` in `backend/.env` and restart the backend.
+
+The same API routes then serve scraped Supabase data instead of the local seed.
+
 ## Verification
 
 ```bash
