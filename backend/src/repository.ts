@@ -4,6 +4,7 @@ import * as mock from "./data.js";
 import type { Developer, FreshSignal, GraphEdge, GraphNode, Hackathon, HackathonAppearance, IngestionRun, Offer, Project } from "./types.js";
 
 type DeveloperWithOffer = Developer & { offer?: Offer | null };
+type VisibilityOptions = { includeOffers?: boolean };
 
 type Snapshot = {
   developers: Developer[];
@@ -75,10 +76,25 @@ function developerProjects(developerId: string, snap: Snapshot) {
   return snap.projects.filter((project) => project.member_ids.includes(developerId) || projectIds.includes(project.id)).sort((a, b) => Date.parse(b.submitted_at) - Date.parse(a.submitted_at));
 }
 
-export async function listDevelopers(query: URLSearchParams) {
+function maybeWithOffer<T extends Developer>(developer: T, snap: Pick<Snapshot, "offers">, options: VisibilityOptions) {
+  return options.includeOffers ? { ...developer, offer: latestOffer(snap.offers, developer.id) } : developer;
+}
+
+function withoutOffer<T extends Developer>(developer: T & { offer?: Offer | null }) {
+  const clone = { ...developer };
+  delete (clone as { offer?: Offer | null }).offer;
+  return clone;
+}
+
+export async function listDevelopers(query: URLSearchParams, options: VisibilityOptions = {}) {
   if (!useSupabase()) {
-    const result = mock.queryDevelopers(query);
-    return { developers: result.developers.map((developer) => ({ ...developer, offer: mock.latestOfferForDeveloper(developer.id) })), cursor: result.cursor };
+    const publicQuery = new URLSearchParams(query);
+    if (!options.includeOffers) publicQuery.delete("has_offer");
+    const result = mock.queryDevelopers(publicQuery);
+    return {
+      developers: result.developers.map((developer) => options.includeOffers ? { ...developer, offer: mock.latestOfferForDeveloper(developer.id) } : developer),
+      cursor: result.cursor
+    };
   }
 
   const snap = await snapshot();
@@ -86,7 +102,7 @@ export async function listDevelopers(query: URLSearchParams) {
   const hackathon = query.get("hackathon");
   const keyword = query.get("project_keyword")?.toLowerCase();
   const placedTop = query.get("placed_top") ? Number(query.get("placed_top")) : null;
-  const hasOffer = query.get("has_offer");
+  const hasOffer = options.includeOffers ? query.get("has_offer") : null;
   const sort = query.get("sort") ?? "recency";
   const limit = Math.min(Number(query.get("limit") ?? 50), 100);
   const offset = Number(query.get("cursor") ?? 0);
@@ -107,16 +123,16 @@ export async function listDevelopers(query: URLSearchParams) {
     return Date.parse(b.first_indexed_at) - Date.parse(a.first_indexed_at);
   });
 
-  const slice = developers.slice(offset, offset + limit).map((developer) => ({ ...developer, offer: latestOffer(snap.offers, developer.id) }));
+  const slice = developers.slice(offset, offset + limit).map((developer) => maybeWithOffer(developer, snap, options));
   return { developers: slice, cursor: offset + limit < developers.length ? String(offset + limit) : null };
 }
 
-export async function getDeveloper(id: string) {
+export async function getDeveloper(id: string, options: VisibilityOptions = {}) {
   if (!useSupabase()) {
     const developer = mock.developerById(id);
     if (!developer) return null;
     return {
-      developer: { ...developer, offer: mock.latestOfferForDeveloper(id) },
+      developer: options.includeOffers ? { ...developer, offer: mock.latestOfferForDeveloper(id) } : developer,
       projects: mock.developerProjects(id),
       hackathons: mock.developerAppearances(id),
       links: developer.links
@@ -132,7 +148,7 @@ export async function getDeveloper(id: string) {
     project,
     placement: project.placement
   })).filter((appearance) => appearance.hackathon);
-  return { developer: { ...developer, offer: latestOffer(snap.offers, id) }, projects, hackathons: appearances, links: developer.links };
+  return { developer: maybeWithOffer(developer, snap, options), projects, hackathons: appearances, links: developer.links };
 }
 
 export async function listHackathons(query: URLSearchParams) {
@@ -145,14 +161,19 @@ export async function listHackathons(query: URLSearchParams) {
   };
 }
 
-export async function getHackathon(slug: string) {
+export async function getHackathon(slug: string, options: VisibilityOptions = {}) {
   if (!useSupabase()) {
     const hackathon = mock.hackathonBySlug(slug);
     if (!hackathon) return null;
     const hackathonProjects = mock.projects.filter((project) => project.hackathon_slug === hackathon.slug);
+    const podium = mock.podiumFor(hackathon.slug).map((row) => ({
+      ...row,
+      members: row.members.map((developer) => options.includeOffers ? { ...developer, offer: mock.latestOfferForDeveloper(developer.id) } : withoutOffer(developer)),
+      offered_to: options.includeOffers ? row.offered_to : []
+    }));
     return {
       hackathon,
-      podium: mock.podiumFor(hackathon.slug),
+      podium,
       all_winners: hackathonProjects.filter((project) => project.placement).sort((a, b) => (a.placement ?? 99) - (b.placement ?? 99)),
       submissions: hackathonProjects.sort((a, b) => (a.placement ?? 99) - (b.placement ?? 99))
     };
@@ -165,8 +186,8 @@ export async function getHackathon(slug: string) {
   const podium = [1, 2, 3].map((rank) => {
     const project = submissions.find((entry) => entry.placement === rank);
     if (!project) return null;
-    const members = projectMembers(project, snap).map((developer) => ({ ...developer, offer: latestOffer(snap.offers, developer.id) })) as DeveloperWithOffer[];
-    return { rank: rank as 1 | 2 | 3, project, members, offered_to: members.filter((member) => latestOffer(snap.offers, member.id)) };
+    const members = projectMembers(project, snap).map((developer) => maybeWithOffer(developer, snap, options)) as DeveloperWithOffer[];
+    return { rank: rank as 1 | 2 | 3, project, members, offered_to: options.includeOffers ? members.filter((member) => latestOffer(snap.offers, member.id)) : [] };
   }).filter(Boolean);
   return { hackathon, podium, all_winners: submissions.filter((project) => project.placement), submissions };
 }
@@ -182,14 +203,14 @@ export async function listProjects(query: URLSearchParams) {
   };
 }
 
-export async function getProject(id: string) {
+export async function getProject(id: string, options: VisibilityOptions = {}) {
   if (!useSupabase()) {
     const project = mock.projectById(id);
     if (!project) return null;
     return {
       project,
       hackathon: mock.hackathonBySlug(project.hackathon_slug),
-      members: mock.membersFor(project).map((developer) => ({ ...developer, offer: mock.latestOfferForDeveloper(developer.id) })),
+      members: mock.membersFor(project).map((developer) => options.includeOffers ? { ...developer, offer: mock.latestOfferForDeveloper(developer.id) } : developer),
       stack: project.stack,
       devpost_url: project.devpost_url,
       won: project.placement
@@ -202,7 +223,7 @@ export async function getProject(id: string) {
   return {
     project,
     hackathon: snap.hackathons.find((hackathon) => hackathon.slug === project.hackathon_slug),
-    members: projectMembers(project, snap).map((developer) => ({ ...developer, offer: latestOffer(snap.offers, developer.id) })),
+    members: projectMembers(project, snap).map((developer) => maybeWithOffer(developer, snap, options)),
     stack: project.stack,
     devpost_url: project.devpost_url,
     won: project.placement

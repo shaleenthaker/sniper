@@ -43,7 +43,7 @@ RESEND_FROM_EMAIL=
 
 `DATA_SOURCE=mock` uses the seeded in-memory demo data. `DATA_SOURCE=supabase` makes the existing API routes read from Supabase.
 
-`ADMIN_TOKEN` is optional but recommended. If set, offer mutations, email sending, ingestion controls, and admin ingestion status require `Authorization: Bearer <token>`. `INGEST_TOKEN` is accepted as a fallback for the same gate.
+`ADMIN_TOKEN` is required for offer reads/writes, email sending, ingestion controls, and admin ingestion status. These routes require `Authorization: Bearer <token>` and fail closed when the token is missing or wrong. `INGEST_TOKEN` is accepted only as a legacy fallback.
 
 `CORS_ORIGIN` can be set to the deployed frontend URL. If omitted, the backend allows all origins for local development.
 
@@ -116,15 +116,7 @@ npm run scrape:devpost:watch -- --once --dry-run --max-list-pages 1 --max-hackat
 
 The watcher sleeps between cycles. Set `DEVPOST_WATCH_INTERVAL_MS` or pass `--interval-ms`; the default is 15 minutes. It also skips hackathons attempted in the last 24 hours so each cycle keeps moving through the priority queue instead of retrying the same failed gallery forever. Set `DEVPOST_SKIP_RECENT_HOURS`, pass `--skip-recent-hours`, or pass `--no-skip-recent` to change that.
 
-You can also ingest through the API:
-
-```bash
-curl -X POST http://localhost:8080/api/ingest/devpost \
-  -H 'content-type: application/json' \
-  -d '{"url":"https://thx.devpost.com/project-gallery","max_pages":1,"max_projects":12}'
-```
-
-With `ADMIN_TOKEN` or `INGEST_TOKEN` set:
+You can also ingest through the API with `ADMIN_TOKEN` or `INGEST_TOKEN` set:
 
 ```bash
 curl -X POST http://localhost:8080/api/ingest/devpost \
@@ -142,7 +134,7 @@ curl -X POST http://localhost:8080/api/ingest/devpost/all \
   -d '{"max_list_pages":1,"max_hackathons":5,"max_project_pages":1,"max_projects_per_hackathon":24}'
 ```
 
-Uncapped API ingestion requires both `all=true` and `confirm=true`.
+Uncapped Devpost discovery is intentionally CLI/workflow-only. The API rejects `all=true` and caps list/project limits to prevent accidental runaway ingestion from a deployed endpoint.
 
 ## Endpoints
 
